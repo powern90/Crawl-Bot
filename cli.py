@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import queue
+import mysql.connector
 
 list_titles_b = []  # 글 제목
 list_content_b = []  # 글 내용
@@ -75,6 +76,21 @@ def thread(que):
 
 
 if __name__ == "__main__":
+    config = {
+        'user': 'ryeoly2',
+        'password': '2045ydr!',
+        'host': '192.168.1.4',
+        'database': 'crolls',
+        'port': '3306'
+    }
+
+    sql = 'INSERT INTO bokjiro (Title, Content, URL, Target, Support, Etc) VALUES(%s, %s, %s, %s, %s, %s)'
+    conn = mysql.connector.connect(**config)
+    _cursor = conn.cursor(dictionary=True)
+    _cursor.execute(sql, ('4', '4', '4', '4', '4', '4'))
+    conn.commit()
+    conn.close()
+
     clientSocket = socket(AF_INET, SOCK_STREAM)
     clientSocket.connect(ADDR)
     que = queue.Queue()

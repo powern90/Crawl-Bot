@@ -53,7 +53,7 @@ def get_url(que, now):
     page_token = list_page_urls[0].split('pageIndex=')[0]
     last_page = soup.find_all("a", {'class': 'goLast'})
     last_page_num = last_page[0].get('href').split('pageIndex=')[1]
-    cnt = 65
+    cnt = 1
     while cnt < int(last_page_num) + 1:
         urls = "http://www.bokjiro.go.kr"
         origin_urls = urls + page_token + 'pageIndex=' + str(cnt)
