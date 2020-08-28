@@ -5,7 +5,10 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import queue
-import mysql.connector
+import psutil
+import time
+
+# import mysql.connector
 
 list_titles_b = []  # 글 제목
 list_content_b = []  # 글 내용
@@ -29,10 +32,7 @@ ADDR = (HOST, PORT)
 import socket
 
 
-
-
 def save_content(que, socket2node, t):
-
     while que.qsize() != 0:
         list_urls = que.get()
         confirm = list_urls.split(" ")[1]
@@ -84,27 +84,42 @@ def thread(que, soket2node):
     t4.join()
 
 
+def thread4rc(socket2rc, w):
+    while True:
+        memory_usage_dict = dict(psutil.virtual_memory()._asdict())
+        memory_usage_percent = memory_usage_dict['percent']
+        cpu_percent = str(psutil.cpu_percent())
+        result = str(memory_usage_percent) + "+" +str(cpu_percent)
+        socket2rc.send(result.encode())
+        print(w + result)
+        time.sleep(2)
+
 if __name__ == "__main__":
-    config = {
-        'user': 'ryeoly2',
-        'password': '2045ydr!',
-        'host': '192.168.1.4',
-        'database': 'crolls',
-        'port': '3306'
-    }
-    sql = 'INSERT INTO bokjiro (Title, Content, URL, Target, Support, Etc) VALUES(%s, %s, %s, %s, %s, %s)'
-    conn = mysql.connector.connect(**config)
-    _cursor = conn.cursor(dictionary=True)
-    _cursor.execute(sql, ('4', '4', '4', '4', '4', '4'))
-    conn.commit()
-    conn.close()
+    # config = {
+    #     'user': 'ryeoly2',
+    #     'password': '2045ydr!',
+    #     'host': '192.168.1.4',
+    #     'database': 'crolls',
+    #     'port': '3306'
+    # }
+    # sql = 'INSERT INTO bokjiro (Title, Content, URL, Target, Support, Etc) VALUES(%s, %s, %s, %s, %s, %s)'
+    # conn = mysql.connector.connect(**config)
+    # _cursor = conn.cursor(dictionary=True)
+    # _cursor.execute(sql, ('4', '4', '4', '4', '4', '4'))
+    # conn.commit()
+    # conn.close()
 
     socket2node = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     socket2node.connect(('192.168.2.3', 9090))
 
+    socket2rc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    socket2rc.connect(('192.168.2.3', 9091))
+
     clientSocket = socket.socket(AF_INET, SOCK_STREAM)
     clientSocket.connect(ADDR)
     que = queue.Queue()
+    trc = threading.Thread(target=thread4rc, args=(socket2rc, "사용량 전송 "))
+    trc.start()
     while True:
         data = clientSocket.recv(8192)
         if data.decode() == 'finish':
