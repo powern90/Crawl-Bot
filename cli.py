@@ -26,12 +26,18 @@ PORT = 10000
 BUFSIZE = 1024
 ADDR = (HOST, PORT)
 
+import socket
 
-def save_content(que, t):
+
+
+
+def save_content(que, socket2node, t):
+
     while que.qsize() != 0:
         list_urls = que.get()
         confirm = list_urls.split(" ")[1]
         list_urls = list_urls.split(" ")[0]
+        titles = ""
         if confirm == 'b':  # 복지로
             next_urls = urls_bok + list_urls
             list_url_b.append(next_urls)
@@ -56,15 +62,18 @@ def save_content(que, t):
             list_content_j.append(re.sub('<.+?>', '', str(content), 0).strip())  # 게시글 내용
             list_during_j.append(re.sub('<.+?>', '', str(soup.select('.date')), 0).strip())
             list_titles_j.append(re.sub('<.+?>', '', str(soup.select('.tit2')), 0).strip())
+            titles = re.sub('<.+?>', '', str(soup.select('.tit2')), 0).strip()
             list_page_urls_j.append(list_urls)
             print(t + " 정부 24 " + re.sub('<.+?>', '', str(soup.select('.tit2')), 0).strip())
+        titles = titles + "+" + list_urls
+        socket2node.send(titles.encode())
 
 
-def thread(que):
-    t1 = threading.Thread(target=save_content, args=(que, "쓰레드1"))
-    t2 = threading.Thread(target=save_content, args=(que, "쓰레드2"))
-    t3 = threading.Thread(target=save_content, args=(que, "쓰레드3"))
-    t4 = threading.Thread(target=save_content, args=(que, "쓰레드4"))
+def thread(que, soket2node):
+    t1 = threading.Thread(target=save_content, args=(que, soket2node, "쓰레드1"))
+    t2 = threading.Thread(target=save_content, args=(que, soket2node, "쓰레드2"))
+    t3 = threading.Thread(target=save_content, args=(que, soket2node, "쓰레드3"))
+    t4 = threading.Thread(target=save_content, args=(que, soket2node, "쓰레드4"))
     t1.start()
     t2.start()
     t3.start()
@@ -83,7 +92,6 @@ if __name__ == "__main__":
         'database': 'crolls',
         'port': '3306'
     }
-
     sql = 'INSERT INTO bokjiro (Title, Content, URL, Target, Support, Etc) VALUES(%s, %s, %s, %s, %s, %s)'
     conn = mysql.connector.connect(**config)
     _cursor = conn.cursor(dictionary=True)
@@ -91,7 +99,10 @@ if __name__ == "__main__":
     conn.commit()
     conn.close()
 
-    clientSocket = socket(AF_INET, SOCK_STREAM)
+    socket2node = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    socket2node.connect(('192.168.2.3', 9090))
+
+    clientSocket = socket.socket(AF_INET, SOCK_STREAM)
     clientSocket.connect(ADDR)
     que = queue.Queue()
     while True:
@@ -102,7 +113,7 @@ if __name__ == "__main__":
         data.remove('')
         for i in data:
             que.put(i)
-        thread(que)
+        thread(que, socket2node)
         if que.qsize() == 0:
             print("큐 비음")
             clientSocket.send("re".encode())
